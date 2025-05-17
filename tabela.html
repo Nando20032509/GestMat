@@ -1,0 +1,259 @@
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tabela de Materiais</title>
+
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+ 
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+
+  <link rel="stylesheet" href="estilo.css">
+  <style>
+ 
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: #f4f6f9;
+      margin: 0;
+      padding: 20px;
+      color: #333;
+    }
+    h1 {
+      text-align: center;
+      color: #2c3e50;
+      margin-bottom: 30px;
+    }
+    label {
+      margin-right: 10px;
+      font-weight: bold;
+    }
+    input[type="text"],
+    input[type="file"] {
+      padding: 8px;
+      margin: 5px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      outline: none;
+      transition: border 0.3s;
+    }
+    input:focus {
+      border-color: #3498db;
+    }
+    button {
+      padding: 10px 15px;
+      border: none;
+      border-radius: 8px;
+      background-color: #3498db;
+      color: white;
+      font-weight: bold;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+      margin: 5px;
+    }
+    button:hover {
+      background-color: #2980b9;
+    }
+    .remover {
+      background-color: #e74c3c;
+    }
+    .remover:hover {
+      background-color: #c0392b;
+    }
+    table {
+      width: 90%;
+      margin: 30px auto;
+      border-collapse: collapse;
+      background-color: white;
+      box-shadow: 0 0 10px rgba(0,0,0,0.05);
+    }
+    th, td {
+      padding: 12px 16px;
+      border-bottom: 1px solid #ddd;
+      text-align: left;
+    }
+    th {
+      background-color: #ecf0f1;
+      font-weight: bold;
+    }
+    .formulario {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    .voltar {
+      display: block;
+      margin: 0 auto;
+      margin-top: 40px;
+      background-color: #2ecc71;
+    }
+    .voltar:hover {
+      background-color: #27ae60;
+    }
+  </style>
+</head>
+<body>
+  <h1>📝 Tabela de Materiais</h1>
+
+  <div class="formulario">
+    <label>Nome do material:</label>
+    <input type="text" id="nomeMaterial" placeholder="Ex: Disco de corte">
+    <label>Código:</label>
+    <input type="text" id="codigoMaterial" placeholder="Ex: 303737">
+    <button onclick="adicionarMaterial()">Adicionar</button>
+    <button onclick="carregarMateriais()">🔤 Ordenar por nome</button>
+    <input type="file" accept=".xlsx" onchange="importarDoExcel(event)" />
+  </div>
+
+  <table id="tabelaMateriais">
+    <thead>
+      <tr>
+        <th>Descrição</th>
+        <th>Código</th>
+        <th>Ações</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+  <button class="voltar" onclick="window.location.href='home.html'">🏠 Voltar para Home</button>
+
+<script>
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyA9LpTGZfJxUjR7Uj3jysFWqqPQGa83enU",
+    authDomain: "requis-f30e7.firebaseapp.com",
+    databaseURL: "https://requis-f30e7-default-rtdb.firebaseio.com",
+    projectId: "requis-f30e7",
+    storageBucket: "requis-f30e7.appspot.com",
+    messagingSenderId: "255216883611",
+    appId: "1:255216883611:web:98f822008688f9d241733e",
+    measurementId: "G-NNBPTG6CNK"
+  };
+
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.database();
+
+  let materiais = JSON.parse(localStorage.getItem("materiais")) || [];
+
+  function salvarNoLocalStorage() {
+    localStorage.setItem("materiais", JSON.stringify(materiais));
+  }
+
+
+  function carregarMateriais() {
+  const tbody = document.querySelector("#tabelaMateriais tbody");
+
+  db.ref("materiais").once("value", snapshot => {
+    const listaOrdenada = [];
+
+    snapshot.forEach(childSnapshot => {
+      const item = childSnapshot.val();
+      const key = childSnapshot.key;
+      listaOrdenada.push({ nome: item.nome, codigo: item.codigo, key });
+    });
+
+    
+    listaOrdenada.sort((a, b) => a.nome.localeCompare(b.nome));
+
+    tbody.innerHTML = "";
+
+    listaOrdenada.forEach(item => {
+      adicionarLinhaNaTabela(item.nome, item.codigo, item.key);
+    });
+  });
+}
+
+ function adicionarLinhaNaTabela(nome, codigo, key) {
+  const tbody = document.querySelector("#tabelaMateriais tbody");
+  const row = tbody.insertRow();
+  row.insertCell(0).textContent = nome;
+  row.insertCell(1).textContent = codigo;
+
+  const celulaAcoes = row.insertCell(2);
+  const btn = document.createElement("button");
+  btn.textContent = "❌ Remover";
+  btn.className = "remover";
+  btn.onclick = () => {
+    db.ref("materiais/" + key).remove()  
+      .then(() => {
+        materiais = materiais.filter(item => item.key !== key);  
+        salvarNoLocalStorage();  
+        tbody.removeChild(row); 
+      })
+      .catch(error => {
+        console.error("Erro ao remover do Firebase: ", error);
+        alert("Erro ao remover material.");
+      });
+  };
+  celulaAcoes.appendChild(btn);
+}
+
+ function adicionarMaterial() {
+  const nome = document.getElementById("nomeMaterial").value.trim();
+  const codigo = document.getElementById("codigoMaterial").value.trim();
+  if (!nome || !codigo) {
+    alert("Preencha ambos os campos!");
+    return;
+  }
+
+  const novoItem = { nome, codigo };
+  db.ref("materiais").push(novoItem) 
+    .then((ref) => {
+    
+      const key = ref.key;
+      materiais.push({ nome, codigo, key });
+      salvarNoLocalStorage();
+      adicionarLinhaNaTabela(nome, codigo, key); 
+      document.getElementById("nomeMaterial").value = "";
+      document.getElementById("codigoMaterial").value = "";
+    })
+    .catch((error) => {
+      console.error("Erro ao adicionar material:", error);
+      alert("Erro ao adicionar material.");
+    });
+}
+
+  function importarDoExcel(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = function (e) {
+      try {
+        const data = new Uint8Array(e.target.result);
+        const workbook = XLSX.read(data, { type: "array" });
+        const sheet = workbook.Sheets[workbook.SheetNames[0]];
+        const rows = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+
+        let inseridos = 0;
+
+        for (let i = 1; i < rows.length; i++) {
+          const linha = rows[i];
+          const nome = linha[0] ? linha[0].toString().trim() : null;
+          const codigo = linha[1] != null ? String(linha[1]).trim() : null;
+
+          if (nome && codigo) {
+            const novoItem = { nome, codigo };
+            materiais.push(novoItem);
+            db.ref("materiais").push(novoItem);
+            adicionarLinhaNaTabela(nome, codigo, materiais.length - 1);
+            inseridos++;
+          }
+        }
+
+        salvarNoLocalStorage();
+        alert('Importação concluída com sucesso! ${inseridos} itens adicionados.');
+      } catch (erro) {
+        console.error("Erro ao importar Excel:", erro);
+        alert("Erro ao importar. Verifique se o arquivo tem duas colunas com dados.");
+      }
+    };
+    reader.readAsArrayBuffer(file);
+  }
+
+  carregarMateriais();
+</script>
+</body>
+</html>

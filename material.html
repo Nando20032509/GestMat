@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>REQUISIÇÃO</title>
+    <link rel="stylesheet" href="estilo.css">
+</head>
+<body>
+
+    <div class="cabecalho">
+        <div class="logo">🔧 Requisição</div>
+        <div class="menu">
+            <a href="home.html">Home</a>
+            <a href="tabela.html">Tabela</a>
+        </div>
+    </div>
+
+    <div class="conteudo">
+        <h1>📝 REQUISIÇÃO DE MATERIAIS</h1>
+        <div id="saida"></div>
+        <button class="voltar" onclick="window.location.href='home.html'">🏠 Voltar para Home</button>
+    </div>
+
+    <script>
+        const saida = document.getElementById("saida");
+
+        function criarLinha(titulo, valor) {
+            return `<tr><th>${titulo}</th><td>${valor}</td></tr>`;
+        }
+
+        const hoje = new Date();
+        const dataFormatada = hoje.toLocaleDateString('pt-BR');
+
+        const solicitante = prompt('Quem está pedindo?');
+
+        const temOS = prompt('Esta requisição está vinculada a uma O.S? (s/n)').toLowerCase();
+        let osInfo = '';
+        if (temOS === 's') {
+            osInfo = prompt('Número da O.S:');
+        } else {
+            const objCusto = prompt('OBJ de custo:');
+            osInfo = `OBJ: ${objCusto}`;
+        }
+
+        const materiais = [];
+
+        while (true) {
+            const codigo = prompt('Código do material:');
+            const quantidade = prompt('Quantidade:');
+
+            if (codigo && quantidade) {
+                materiais.push({ codigo, quantidade });
+            }
+
+            const adicionarMais = prompt('Deseja adicionar outro item? (s/n)').toLowerCase();
+            if (adicionarMais !== 's') break;
+        }
+
+        let tabela = `
+        <table>
+            <tr><th colspan="2">DADOS DA REQUISIÇÃO</th></tr>
+            ${criarLinha('Data', dataFormatada)}
+            ${criarLinha('Quem está pedindo', solicitante)}
+            ${criarLinha(temOS === 's' ? 'Ordem de Serviço' : 'OBJ de Custo', osInfo)}
+        </table>
+        <br>
+        <table>
+            <tr><th colspan="3">ITENS REQUISITADOS</th></tr>
+            <tr><th>Ordem</th><th>Código do Material</th><th>Quantidade</th></tr>`;
+
+        materiais.forEach((item, index) => {
+            tabela += `<tr>
+                <td>${index + 1}</td>
+                <td>${item.codigo}</td>
+                <td>${item.quantidade}</td>
+            </tr>`;
+        });
+
+        tabela += `</table>`;
+
+        saida.innerHTML = tabela;
+    </script>
+</body>
+</html>
